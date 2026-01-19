@@ -20,6 +20,13 @@ public class UIManager : MonoBehaviour
     public CanvasGroup dialogueGroup; // 페이드 효과용
     public TMP_Text dialogueText;
 
+    [Header("Energy UI")]
+    public TMP_Text energyText;
+
+    [Header("Deck UI")]
+    public TMP_Text discardCountText;
+    public TMP_Text currentCountText;
+
     void Awake()
     {
         Instance = this;
@@ -59,6 +66,21 @@ public class UIManager : MonoBehaviour
     public void ShowDialogue(string text, float duration)
     {
         StartCoroutine(DialogueRoutine(text, duration));
+    }
+
+    public void UpdateEnergy(int current, int max)
+    {
+        energyText.text = $"{current} / {max}";
+    }
+
+    public void UpdateDiscardCount(int count)
+    {
+        discardCountText.text = count.ToString();
+    }
+
+    public void UpdateCurrentCount(int count)
+    {
+        currentCountText.text = count.ToString();
     }
 
     IEnumerator DialogueRoutine(string text, float duration)

@@ -3,27 +3,25 @@ using UnityEngine;
 
 public class TurnChangeCommand : ICommand
 {
-    private PlayerMove _player;
-    private int _newTurnCount;
+    // 누가 턴을 받을지, 혹은 다음 상태가 무엇인지 저장
+    private BattleState _nextState;
 
-    public TurnChangeCommand(PlayerMove player, int newTurnCount)
+    public TurnChangeCommand(BattleState nextState)
     {
-        _player = player;
-        _newTurnCount = newTurnCount;
+        _nextState = nextState;
     }
 
     public IEnumerator Execute()
     {
-        // 턴 넘김 처리
-        //_player.turncount = 0; // 플레이어 행동권 복구
-        //_player.globalTurnCount = _newTurnCount;
+        Debug.Log("🔄 턴 변경 중...");
+        
+        // 1. 잠시 뜸 들이기 (바로 바뀌면 정신없으니까)
+        yield return new WaitForSeconds(0.5f);
 
-        _player.RestTurn(_newTurnCount);
-        
-        // UI 갱신
-        UIManager.Instance.UpdateTurnInfo(_newTurnCount, true);
-        
-        Debug.Log("턴 변경 완료: Player Turn");
-        yield return null;
+        // 2. 다음 상태가 플레이어 턴이라면 -> 플레이어 턴 시작 함수 호출
+        if (_nextState == BattleState.PlayerTurn)
+        {
+            BattleManager.Instance.StartPlayerTurn();
+        }
     }
 }

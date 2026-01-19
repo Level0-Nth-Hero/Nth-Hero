@@ -12,6 +12,7 @@ public class EnemyMove : MonoBehaviour, IDamageable
     
     public float maxHp = 100;
     public float currentHp;
+    public int attackDamage = 10;
 
     void Awake()
     {
@@ -32,11 +33,11 @@ public class EnemyMove : MonoBehaviour, IDamageable
         BattleManager.Instance.AddCommand(dialogueCmd);
 
         // 2. 공격 커맨드 등록 (타겟은 플레이어)
-        ICommand attackCmd = new AttackCommand(playerScript, 10, anim);
+        ICommand attackCmd = new AttackCommand(playerScript, attackDamage, anim);
         BattleManager.Instance.AddCommand(attackCmd);
 
         // 3. 턴 넘김 커맨드 등록 (적이 다 때리고 나면 턴 변경)
-        ICommand turnChangeCmd = new TurnChangeCommand(playerScript, playerScript.globalTurnCount + 1);
+        ICommand turnChangeCmd = new TurnChangeCommand(BattleState.PlayerTurn); 
         BattleManager.Instance.AddCommand(turnChangeCmd);
     }
 
