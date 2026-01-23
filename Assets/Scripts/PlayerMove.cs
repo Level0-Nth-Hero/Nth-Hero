@@ -1,49 +1,49 @@
 using UnityEngine;
 
-public class PlayerMove : MonoBehaviour , IDamageable
+public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및 상태 관리 클래스
 {
-    private SpriteRenderer spriteRenderer;
-    [SerializeField] private Animator anim;
+    private SpriteRenderer spriteRenderer; // 스프라이트 렌더러
+    [SerializeField] private Animator anim; // 애니메이터
 
-    [Header("에너지")]
-    public int maxEnergy = 3;
-    public int currentEnergy;
+    [Header("에너지")] // 에너지 설정
+    public int maxEnergy = 3; // 최대 에너지
+    public int currentEnergy; // 현재 에너지
 
-    public float maxHp { get; private set; } = 100;
-    public float currentHp { get; private set; }
+    public float maxHp { get; private set; } = 100; // 최대 체력
+    public float currentHp { get; private set; } // 현재 체력
 
-    void Awake()
+    void Awake() 
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        spriteRenderer = GetComponent<SpriteRenderer>(); // 스프라이트 렌더러 가져오기
         //anim = GetComponent<Animator>();
         
-        currentHp = maxHp;
+        currentHp = maxHp; // 현재 체력 초기화
     }
 
     void Start()
     {
-         UIManager.Instance.UpdateHP(currentHp, maxHp, true);
-         UIManager.Instance.UpdateHP(100, 100, false); 
+         UIManager.Instance.UpdateHP(currentHp, maxHp, true); // true는 플레이어
+         UIManager.Instance.UpdateHP(100, 100, false); // 적 체력 UI 초기화
     }
 
-    public void RefillEnergy()
+    public void RefillEnergy() // 에너지 채우기 함수
     {
-        currentEnergy = maxEnergy;
-        UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy);
+        currentEnergy = maxEnergy; // 에너지 최대치로 채우기
+        UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy); // UI 갱신
     }
 
-    public bool TryUseEnergy(int cost)
+    public bool TryUseEnergy(int cost) // 에너지 사용 시도 함수
     {
-        if (currentEnergy >= cost)
+        if (currentEnergy >= cost) // 충분한 에너지 있으면
         {
-            currentEnergy -= cost;
-            UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy);
-            return true;
+            currentEnergy -= cost; // 에너지 차감
+            UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy); // UI 갱신
+            return true; // 사용 성공
         }
         else
         {
             Debug.Log("에너지가 부족합니다!");
-            return false;
+            return false; // 사용 실패
         }
     }
 

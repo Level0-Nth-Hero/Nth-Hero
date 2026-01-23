@@ -9,8 +9,8 @@ public class UIManager : MonoBehaviour
     public static UIManager Instance;
 
     [Header("HP UI")]
-    public Slider playerHpSlider;
-    public Slider enemyHpSlider;
+    public Slider playerHpSlider; // 플레이어 HP 슬라이더
+    public Slider enemyHpSlider; // 적 HP 슬라이더
 
     [Header("Turn UI")]
     public TMP_Text turnStateText; // "나의 턴 / 적의 턴"
@@ -18,14 +18,14 @@ public class UIManager : MonoBehaviour
 
     [Header("Dialogue UI")]
     public CanvasGroup dialogueGroup; // 페이드 효과용
-    public TMP_Text dialogueText;
+    public TMP_Text dialogueText; // 대사 텍스트
 
     [Header("Energy UI")]
-    public TMP_Text energyText;
+    public TMP_Text energyText; // 에너지 텍스트
 
     [Header("Deck UI")]
-    public TMP_Text discardCountText;
-    public TMP_Text currentCountText;
+    public TMP_Text discardCountText; // 버린 카드 수 텍스트
+    public TMP_Text currentCountText; // 현재 덱 카드 수 텍스트
 
     void Awake()
     {
@@ -46,9 +46,9 @@ public class UIManager : MonoBehaviour
     }
 
     // 2. 턴 정보 갱신 함수
-    public void UpdateTurnInfo(int turnCount, bool isPlayerTurn)
+    public void UpdateTurnInfo(int turnCount, bool isPlayerTurn) // isPlayerTurn: 플레이어 턴인지 여부
     {
-        turnCountText.text = "Turn: " + turnCount;
+        turnCountText.text = "Turn: " + turnCount; // 턴 카운트 갱신
         
         if (isPlayerTurn)
         {
@@ -65,50 +65,50 @@ public class UIManager : MonoBehaviour
     // 3. 대사 출력 (페이드 인 -> 대기 -> 페이드 아웃)
     public void ShowDialogue(string text, float duration)
     {
-        StartCoroutine(DialogueRoutine(text, duration));
+        StartCoroutine(DialogueRoutine(text, duration)); // 코루틴 시작
     }
 
-    public void UpdateEnergy(int current, int max)
+    public void UpdateEnergy(int current, int max) // 에너지 갱신
     {
         energyText.text = $"{current} / {max}";
     }
 
-    public void UpdateDiscardCount(int count)
+    public void UpdateDiscardCount(int count) // 무덤 카드 수 갱신
     {
         discardCountText.text = count.ToString();
     }
 
-    public void UpdateCurrentCount(int count)
+    public void UpdateCurrentCount(int count) // 현재 덱 카드 수 갱신
     {
         currentCountText.text = count.ToString();
     }
 
-    IEnumerator DialogueRoutine(string text, float duration)
+    IEnumerator DialogueRoutine(string text, float duration) // 대사 출력 코루틴
     {
         dialogueText.text = text;
 
         // 페이드 인 (0 -> 1)
-        float fadeTime = 0.5f;
-        float time = 0;
-        while(time < fadeTime)
+        float fadeTime = 0.5f; // 페이드 시간
+        float time = 0; // 경과 시간
+        while(time < fadeTime) // 페이드 인
         {
-            time += Time.deltaTime;
-            dialogueGroup.alpha = Mathf.Lerp(0, 1, time / fadeTime);
-            yield return null;
+            time += Time.deltaTime; 
+            dialogueGroup.alpha = Mathf.Lerp(0, 1, time / fadeTime); // 알파값 보간은 Lerp 사용은 무슨 의미냐면 처음부터 끝까지 부드럽게 변화시키는 것
+            yield return null; // 한 프레임 대기 null 은 다음 프레임까지 기다리라는 의미 그 다음 프레임은 16.67ms 후임
         }
-        dialogueGroup.alpha = 1;
+        dialogueGroup.alpha = 1; // 완전 보임
 
         // 대사 유지
-        yield return new WaitForSeconds(duration);
+        yield return new WaitForSeconds(duration); // 대기
 
         // 페이드 아웃 (1 -> 0)
         time = 0;
-        while (time < fadeTime)
+        while (time < fadeTime) // 페이드 아웃
         {
-            time += Time.deltaTime;
-            dialogueGroup.alpha = Mathf.Lerp(1, 0, time / fadeTime);
-            yield return null;
+            time += Time.deltaTime; // 경과 시간 증가
+            dialogueGroup.alpha = Mathf.Lerp(1, 0, time / fadeTime); // 알파값 보간
+            yield return null; // 한 프레임 대기
         }
-        dialogueGroup.alpha = 0;
+        dialogueGroup.alpha = 0; // 완전 안 보임
     }
 }
