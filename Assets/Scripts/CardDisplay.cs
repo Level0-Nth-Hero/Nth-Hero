@@ -153,7 +153,29 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
                 return; // 성공했으면 종료
             }
         }
-        
+        // 2. 스킬/버프 카드: 그냥 허공에 던지면 됨
+        else if (cardData.cardType == CardType.Skill)
+        {
+            // 카드를 화면 중간 정도(핸드보다 위)까지 드래그했는지 확인
+            // (Y값이 -200~-300 정도가 보통 핸드 위치라고 가정하면, 
+            //  local position이나 world position을 체크하거나, 
+            //  가장 쉬운 건 그냥 "원래 위치보다 많이 올라갔나?" 체크)
+
+            // 팁: transform.position.y가 카드 패널보다 확실히 위쪽인지 체크
+            // 여기서는 단순히 '드래그를 했다면' 사용하는 걸로 하되, 실수 방지를 위해
+            // 화면 하단(핸드 영역)을 벗어났는지만 봅니다.
+
+            // 화면 높이의 1/4 이상 위로 드래그했으면 사용 (실수 방지)
+            if (Input.mousePosition.y > Screen.height * 0.25f)
+            {
+                if (playerScript.TryUseEnergy(cardData.cost))
+                {
+                    UseCard(null); // 타겟 필요 없음 (null 전달)
+                    return;
+                }
+            }
+        }
+
         ResetCardState(); // 카드 상태 초기화
     }
 
@@ -182,11 +204,31 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             isAnyCardDragging = false; // 드래그 상태 해제
 
             Animator anim = playerScript.GetComponent<Animator>(); // 플레이어 애니메이터 가져오기
-            ICommand attackCmd = new AttackCommand(target, cardData.value, anim); // 공격 커맨드 생성
+            int finalDamage = cardData.value + playerScript.tempStrength;
+            ICommand attackCmd = new AttackCommand(target, finalDamage, anim); // 공격 커맨드 생성
             BattleManager.Instance.AddCommand(attackCmd); // 커맨드 매니저에 등록
-            DeckManager.Instance.AddCardToDiscard(cardData); // 카드 무덤에 보내기
+            if (cardData.isExhaust)
+            {
+                DeckManager.Instance.AddCardToExhaust(cardData); // 소멸존으로!
+            }
+            else
+            {
+                DeckManager.Instance.AddCardToDiscard(cardData); // 무덤으로!
+            }
 
             Destroy(gameObject); // 카드 오브젝트 파괴
+        }
+        else if (cardData != null && cardData.cardType == CardType.Skill)
+        {
+            // 버프 커맨드 실행 (아래 3단계에서 만듦)
+            ICommand buffCmd = new BuffCommand(playerScript, cardData.value);
+            BattleManager.Instance.AddCommand(buffCmd);
+
+            // 스킬 카드도 쓰고 나서 버리거나 소멸해야 함
+            if (cardData.isExhaust) DeckManager.Instance.AddCardToExhaust(cardData);
+            else DeckManager.Instance.AddCardToDiscard(cardData);
+
+            Destroy(gameObject);
         }
     }
 }

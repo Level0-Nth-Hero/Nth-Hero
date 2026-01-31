@@ -19,5 +19,6 @@ public class CardData : ScriptableObject // 카드의 데이터들을 담는 스
 
     [TextArea] // 에디터에서 글 쓰는 칸이 넓어지는 기능
     public string description; // 카드 설명
+    public bool isExhaust; // 카드 사용 후 소멸 여부
 }
 public enum CardType { Attack, Skill, Power } // 카드 종류 열거형

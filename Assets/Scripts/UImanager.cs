@@ -26,6 +26,7 @@ public class UIManager : MonoBehaviour
     [Header("Deck UI")]
     public TMP_Text discardCountText; // 버린 카드 수 텍스트
     public TMP_Text currentCountText; // 현재 덱 카드 수 텍스트
+    public TMP_Text exhaustCountText; // 소멸된 카드 수 텍스트
 
     void Awake()
     {
@@ -81,6 +82,14 @@ public class UIManager : MonoBehaviour
     public void UpdateCurrentCount(int count) // 현재 덱 카드 수 갱신
     {
         currentCountText.text = count.ToString();
+    }
+
+    public void UpdateExhaustCount(int count) // 소멸 카드 수 갱신
+    {
+        if (exhaustCountText != null)
+        {
+            exhaustCountText.text = count.ToString();
+        }
     }
 
     IEnumerator DialogueRoutine(string text, float duration) // 대사 출력 코루틴
