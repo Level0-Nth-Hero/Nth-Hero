@@ -188,5 +188,18 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
             Destroy(gameObject); // 카드 오브젝트 파괴
         }
+        else if (cardData != null && cardData.cardType == CardType.Skill)
+        {
+            isAnyCardDragging = false;
+
+            // 공격 대상(target)이 누구든 상관없이 플레이어에게 쉴드를 줍니다.
+            ICommand shieldCmd = new ShieldCommand(playerScript, cardData.value);
+            BattleManager.Instance.AddCommand(shieldCmd);
+
+            DeckManager.Instance.AddCardToDiscard(cardData);
+            Destroy(gameObject);
+        }
+
+
     }
 }
