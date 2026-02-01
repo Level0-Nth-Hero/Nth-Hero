@@ -1,7 +1,9 @@
-using UnityEngine;
+using System.Collections.Generic;
 using TMPro;
-using UnityEngine.UI;
+using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
+//using static PlayerMove;
 
 public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler // 카드 UI 표시 및 드래그/호버 처리 클래스
 {   
@@ -25,6 +27,7 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private bool isHovering = false; // 중복 호버 방지용
     
     private Transform originalParent; // 원래 부모 (HandPanel)
+
 
     void Awake()
     {
@@ -142,11 +145,9 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             IDamageable target = hit.collider.GetComponent<IDamageable>(); // 맞은 대상이 IDamageable인지 확인
             if (target != null) // 맞은 대상이 IDamageable이면
             {
-                if (playerScript.TryUseEnergy(cardData.cost)) // 에너지 충분하면
-                {
-                    UseCard(target); // 카드 사용
-                }
-                else // 에너지 부족하면
+                bool used = UseCard(target);
+
+                if (!used) // 에너지 부족하면
                 {
                     ResetCardState(); // 카드 상태 초기화
                 }
@@ -175,6 +176,92 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         DeckManager.Instance.AlignCards();
     }
 
+
+    public bool UseCard(IDamageable target)
+    {
+        if (cardData == null || cardData.cardType != CardType.Attack)
+            return false;
+
+        isAnyCardDragging = false;
+
+        Animator anim = playerScript.GetComponent<Animator>();
+
+        // 직업별 공격 조건 리스트 생성
+        List<IAttackCondition> conditions = new List<IAttackCondition>();
+        switch (playerScript.playerJob)
+        {
+            case PlayerJob.Warrior:
+                WarriorAttack warriorCondition = new WarriorAttack();
+                conditions.Add(warriorCondition);
+                break;
+
+            case PlayerJob.Archer:
+                ArcherAttack archerCondition = new ArcherAttack();
+                conditions.Add(archerCondition);
+                break;
+        }
+
+        // 사전 조건 체크 (범위 밖이면 카드 Destroy 안 함)
+        for (int i = 0; i < conditions.Count; i++)
+        {
+            if (!conditions[i].CanAttack(target.TargetTransform))
+            {
+                Debug.Log("범위 밖이라 카드 사용 불가");
+                return false;
+            }
+        }
+        if (!playerScript.TryUseEnergy(cardData.cost, true))
+            return false;
+
+        // AttackCommand 생성
+        AttackCommand attackCmd = new AttackCommand(target, target.TargetTransform, cardData.value, anim, conditions);
+
+        BattleManager.Instance.AddCommand(attackCmd);
+        DeckManager.Instance.AddCardToDiscard(cardData);
+        Destroy(gameObject);
+
+        return true;
+    }
+}
+
+
+    /*
+    public void UseCard(IDamageable target) // 카드를 사용해서 대상에게 효과 적용
+    {
+        if (cardData == null || cardData.cardType != CardType.Attack)
+            return;
+
+        // 타겟 위치 확인용 캐스팅
+        MonoBehaviour targetMono = target as MonoBehaviour;
+        if (targetMono == null)
+        {
+            Debug.Log("공격 불가능: 타겟 위치 정보를 가져올 수 없음");
+            return;
+        }
+
+        // 사전 범위 체크 (AttackCommand와 동일 기준)
+        if (targetMono.transform.position.x >= 5f)
+        {
+            Debug.Log("공격 불가능 : 적 위치가 범위 밖입니다!");
+            return; // Destroy 안 함
+        }
+
+        isAnyCardDragging = false;
+
+        Animator anim = playerScript.GetComponent<Animator>();
+
+        ICommand attackCmd = new AttackCommand(target, targetMono.transform, cardData.value, anim);
+
+        BattleManager.Instance.AddCommand(attackCmd);
+        DeckManager.Instance.AddCardToDiscard(cardData);
+
+        Destroy(gameObject);
+    }
+
+    /*
+    // 혹시나 오류에 대비해서 기존 코드 주석 처리 (김성민)
+
+
     public void UseCard(IDamageable target) // 카드를 사용해서 대상에게 효과 적용
     {
         if (cardData != null && cardData.cardType == CardType.Attack) // 공격 카드면
@@ -189,4 +276,4 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             Destroy(gameObject); // 카드 오브젝트 파괴
         }
     }
-}
+    */

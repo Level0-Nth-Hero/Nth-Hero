@@ -1,5 +1,8 @@
 using UnityEngine;
 
+public enum PlayerJob // 플레이어의 직업
+{ Warrior, Archer }
+
 public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및 상태 관리 클래스
 {
     private SpriteRenderer spriteRenderer; // 스프라이트 렌더러
@@ -9,9 +12,12 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
     public int maxEnergy = 3; // 최대 에너지
     public int currentEnergy; // 현재 에너지
 
+
     public float maxHp { get; private set; } = 100; // 최대 체력
     public float currentHp { get; private set; } // 현재 체력
 
+    public PlayerJob playerJob;
+    public Transform TargetTransform => this.transform;
     void Awake() 
     {
         spriteRenderer = GetComponent<SpriteRenderer>(); // 스프라이트 렌더러 가져오기
@@ -32,8 +38,11 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
         UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy); // UI 갱신
     }
 
-    public bool TryUseEnergy(int cost) // 에너지 사용 시도 함수
+    public bool TryUseEnergy(int cost, bool canConsume) // 에너지 사용 시도 함수 + 공격 조건에 맞을 때만 에너지 소모 (김성민)
     {
+        if (!canConsume)
+            return false;
+
         if (currentEnergy >= cost) // 충분한 에너지 있으면
         {
             currentEnergy -= cost; // 에너지 차감

@@ -1,5 +1,6 @@
-using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
 public class EnemyMove : MonoBehaviour, IDamageable 
 {
@@ -13,6 +14,8 @@ public class EnemyMove : MonoBehaviour, IDamageable
     public float maxHp = 100; // 최대 체력
     public float currentHp; // 현재 체력
     public int attackDamage = 10; // 적의 공격 데미지
+
+    public Transform TargetTransform => transform;
 
     void Awake()
     {
@@ -33,8 +36,16 @@ public class EnemyMove : MonoBehaviour, IDamageable
         BattleManager.Instance.AddCommand(dialogueCmd); // 커맨드 큐에 등록
 
         // 2. 공격 커맨드 등록 (타겟은 플레이어)
-        ICommand attackCmd = new AttackCommand(playerScript, attackDamage, anim);
+        List<IAttackCondition> conditions = new List<IAttackCondition>();
+        // 아무 조건도 안 넣음 = 무조건 공격 가능
+
+        ICommand attackCmd = new AttackCommand(playerScript, playerScript.TargetTransform, attackDamage, anim, conditions);
         BattleManager.Instance.AddCommand(attackCmd);
+
+        /*
+        ICommand attackCmd = new AttackCommand(playerScript, playerScript.transform, attackDamage, anim);
+        BattleManager.Instance.AddCommand(attackCmd);
+        */
 
         // 3. 턴 넘김 커맨드 등록 (적이 다 때리고 나면 턴 변경)
         ICommand turnChangeCmd = new TurnChangeCommand(BattleState.PlayerTurn); 
