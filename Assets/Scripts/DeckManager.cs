@@ -23,6 +23,8 @@ public class DeckManager : MonoBehaviour // 덱과 무덤을 관리하는 매니
     public List<CardData> initialDeck; // 초기 덱 (인스펙터에서 설정)
     private List<CardData> currentDeck = new List<CardData>(); // 현재 덱
     public List<CardData> discardDeck = new List<CardData>(); // 무덤
+    // [추가] 소멸된 카드 리스트 (게임 중엔 안 섞이고, 전투 끝나면 복구용)
+    public List<CardData> exhaustDeck = new List<CardData>();
 
     void Awake() { Instance = this; } // 싱글톤 초기화
 
@@ -35,6 +37,7 @@ public class DeckManager : MonoBehaviour // 덱과 무덤을 관리하는 매니
     {
         currentDeck.Clear(); // 현재 덱 비우기
         discardDeck.Clear(); // 무덤 비우기
+        exhaustDeck.Clear(); // 소멸 덱 비우기
 
         for (int i = 0; i < initialDeck.Count; i++) 
         {
@@ -44,6 +47,7 @@ public class DeckManager : MonoBehaviour // 덱과 무덤을 관리하는 매니
 
         UIManager.Instance.UpdateDiscardCount(0); // 무덤 카운트 UI 갱신
         UIManager.Instance.UpdateCurrentCount(currentDeck.Count); // 현재 덱 카운트 UI 갱신
+        UIManager.Instance.UpdateExhaustCount(0); // 소멸 카운트 UI 갱신
     }
 
     public void Shuffle() // 덱 섞기 함수
@@ -91,6 +95,13 @@ public class DeckManager : MonoBehaviour // 덱과 무덤을 관리하는 매니
     {
         discardDeck.Add(card); // 무덤에 카드 데이터 추가
         UIManager.Instance.UpdateDiscardCount(discardDeck.Count); // 무덤 카운트 UI 갱신
+    }
+
+    public void AddCardToExhaust(CardData card)
+    {
+        exhaustDeck.Add(card);
+        Debug.Log($"{card.cardName} 카드가 소멸되었습니다! (이번 전투에서 제외)");
+        UIManager.Instance.UpdateExhaustCount(exhaustDeck.Count);
     }
 
     void ReshuffleDiscardToDeck() // 무덤을 덱으로 섞어 옮기는 함수
