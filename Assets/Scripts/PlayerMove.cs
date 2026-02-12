@@ -8,16 +8,21 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
     [Header("에너지")] // 에너지 설정
     public int maxEnergy = 3; // 최대 에너지
     public int currentEnergy; // 현재 에너지
+    
+    // [통합] 쉴드 설정 (Shield Branch)
     public float maxShield = 15f; // 쉴드 최대치 제한
+    public float currentShield { get; private set; } // 현재 쉴드량
 
     public float maxHp { get; private set; } = 100; // 최대 체력
     public float currentHp { get; private set; } // 현재 체력
 
-    public float currentShield { get; private set; } // 현재 쉴드량 추가
+    // [통합] 공격력 버프 설정 (Develop Branch)
+    // [임시] 나중에 scriptable object로 관리해야 할듯 임시 공격력
+    public int tempStrength = 0; 
 
+    // 프로퍼티 (필요시 사용)
     public float CurrentHp => currentHp;
     public float CurrentShield => currentShield;
-
 
     void Awake() 
     {
@@ -26,44 +31,7 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
         
         currentHp = maxHp; // 현재 체력 초기화
         currentShield = 0; // 시작 시 실드는 0
-    }
-
-    public void UpdateTurnStartResources()//턴 시작 시 방어도 초기화 및 코스트 +2 충전
-    {
-        currentShield = 0; // 턴 시작 시 실드 초기화
-        currentEnergy = Mathf.Min(currentEnergy + 2, maxEnergy);
-        UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy);
-        
-    }
-
-    public void AddShield(float amount)//실드 추가 기능
-    {
-        currentShield = Mathf.Min(currentShield + amount, maxShield);
-        Debug.Log($"쉴드 획득! 현재 쉴드: {currentShield} (최대: {maxShield})");
-    }
-
-    public void TakeDamage(float damage) //실드 우선 차감 데미지 로직
-    {
-        float remainingDamage = damage;
-
-        if (currentShield > 0)
-        {
-            if (currentShield >= remainingDamage)
-            {
-                currentShield -= remainingDamage;
-                remainingDamage = 0;
-            }
-            else
-            {
-                remainingDamage -= currentShield;
-                currentShield = 0;
-            }
-        }
-
-        currentHp -= remainingDamage;
-        if (currentHp < 0) currentHp = 0;
-        anim.SetTrigger("Damaged");
-        UIManager.Instance.UpdateHP(currentHp, maxHp, true);
+        tempStrength = 0; // 시작 시 버프 0
     }
 
     void Start()
@@ -72,11 +40,23 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
          UIManager.Instance.UpdateHP(100, 100, false); // 적 체력 UI 초기화
     }
 
-    public void RefillEnergy() // 에너지 채우기 함수
+    // 턴 시작 시 리소스 초기화 (쉴드 초기화, 에너지 충전, 버프 초기화)
+    public void UpdateTurnStartResources()
     {
-        currentEnergy = maxEnergy; // 에너지 최대치로 채우기
-        UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy); // UI 갱신
-        currentShield = 0;//실드 리셋
+        currentShield = 0; // 턴 시작 시 실드 초기화
+        currentEnergy = Mathf.Min(currentEnergy + 2, maxEnergy); // 에너지 2 회복
+        UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy);
+        
+        // [중요] 턴 시작 시 버프도 초기화되어야 함 (Develop 로직 통합)
+        ResetTurnBuffs();
+    }
+
+    public void RefillEnergy() // 에너지 완전 회복 함수 (전투 시작 등)
+    {
+        currentEnergy = maxEnergy; 
+        UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy); 
+        currentShield = 0; // 실드 리셋
+        tempStrength = 0; // 버프 리셋
     }
 
     public bool TryUseEnergy(int cost) // 에너지 사용 시도 함수
@@ -94,4 +74,64 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
         }
     }
 
+    // ---------------------------------------------------------
+    // [Shield System] 쉴드 관련 로직
+    // ---------------------------------------------------------
+    public void AddShield(float amount)//실드 추가 기능
+    {
+        currentShield = Mathf.Min(currentShield + amount, maxShield);
+        Debug.Log($"쉴드 획득! 현재 쉴드: {currentShield} (최대: {maxShield})");
+        // UI 갱신 필요시 여기에 추가
+    }
+
+    // [중요] 데미지 로직은 Shield 버전이 최신이므로 이걸 사용합니다.
+    public void TakeDamage(float damage) //실드 우선 차감 데미지 로직
+    {
+        float remainingDamage = damage;
+
+        // 1. 쉴드가 있으면 먼저 깎음
+        if (currentShield > 0)
+        {
+            if (currentShield >= remainingDamage)
+            {
+                currentShield -= remainingDamage;
+                remainingDamage = 0;
+            }
+            else
+            {
+                remainingDamage -= currentShield;
+                currentShield = 0;
+            }
+            Debug.Log($"쉴드로 방어함! 남은 쉴드: {currentShield}");
+        }
+
+        // 2. 남은 데미지로 체력 깎음
+        currentHp -= remainingDamage;
+        if (currentHp < 0) currentHp = 0;
+        
+        anim.SetTrigger("Damaged");
+        UIManager.Instance.UpdateHP(currentHp, maxHp, true);
+    }
+
+    // ---------------------------------------------------------
+    // [Develop Branch] 버프 관련 로직 (여기로 가져옴)
+    // ---------------------------------------------------------
+    
+    // [추가] 버프 받는 함수
+    public void AddTempStrength(int amount)
+    {
+        tempStrength += amount;
+        Debug.Log($"공격력이 {amount}만큼 증가했습니다! (현재 추가공격력: {tempStrength})");
+        // 이펙트나 UI 갱신 코드 추가 가능
+    }
+
+    // [추가] 턴 종료 시 호출해서 버프 초기화
+    public void ResetTurnBuffs()
+    {
+        if (tempStrength > 0)
+        {
+            Debug.Log("턴이 종료되어 버프가 사라집니다.");
+            tempStrength = 0;
+        }
+    }
 }

@@ -153,7 +153,29 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
                 return; // 성공했으면 종료
             }
         }
-        
+        // 2. 스킬/버프 카드: 그냥 허공에 던지면 됨
+        else if (cardData.cardType == CardType.Skill)
+        {
+            // 카드를 화면 중간 정도(핸드보다 위)까지 드래그했는지 확인
+            // (Y값이 -200~-300 정도가 보통 핸드 위치라고 가정하면, 
+            //  local position이나 world position을 체크하거나, 
+            //  가장 쉬운 건 그냥 "원래 위치보다 많이 올라갔나?" 체크)
+
+            // 팁: transform.position.y가 카드 패널보다 확실히 위쪽인지 체크
+            // 여기서는 단순히 '드래그를 했다면' 사용하는 걸로 하되, 실수 방지를 위해
+            // 화면 하단(핸드 영역)을 벗어났는지만 봅니다.
+
+            // 화면 높이의 1/4 이상 위로 드래그했으면 사용 (실수 방지)
+            if (Input.mousePosition.y > Screen.height * 0.25f)
+            {
+                if (playerScript.TryUseEnergy(cardData.cost))
+                {
+                    UseCard(null); // 타겟 필요 없음 (null 전달)
+                    return;
+                }
+            }
+        }
+
         ResetCardState(); // 카드 상태 초기화
     }
 
@@ -182,24 +204,55 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
             isAnyCardDragging = false; // 드래그 상태 해제
 
             Animator anim = playerScript.GetComponent<Animator>(); // 플레이어 애니메이터 가져오기
-            ICommand attackCmd = new AttackCommand(target, cardData.value, anim); // 공격 커맨드 생성
+            int finalDamage = cardData.value + playerScript.tempStrength;
+            ICommand attackCmd = new AttackCommand(target, finalDamage, anim); // 공격 커맨드 생성
             BattleManager.Instance.AddCommand(attackCmd); // 커맨드 매니저에 등록
-            DeckManager.Instance.AddCardToDiscard(cardData); // 카드 무덤에 보내기
+            if (cardData.isExhaust)
+            {
+                DeckManager.Instance.AddCardToExhaust(cardData); // 소멸존으로!
+            }
+            else
+            {
+                DeckManager.Instance.AddCardToDiscard(cardData); // 무덤으로!
+            }
 
             Destroy(gameObject); // 카드 오브젝트 파괴
         }
         else if (cardData != null && cardData.cardType == CardType.Skill)
         {
-            isAnyCardDragging = false;
+            isAnyCardDragging = false; // 드래그 해제
 
-            // 공격 대상(target)이 누구든 상관없이 플레이어에게 쉴드를 줍니다.
-            ICommand shieldCmd = new ShieldCommand(playerScript, cardData.value);
-            BattleManager.Instance.AddCommand(shieldCmd);
+            // 1. 효과 타입(effectType)에 따라 다른 커맨드 생성!
+            // (주의: CardEffectType은 나중에 유니티 가서 추가할 예정임. 지금은 그냥 적어두기!)
+            ICommand skillCmd = null;
 
-            DeckManager.Instance.AddCardToDiscard(cardData);
-            Destroy(gameObject);
+            switch (cardData.effectType)
+            {
+                case CardEffectType.Shield:
+                    skillCmd = new ShieldCommand(playerScript, cardData.value);
+                    break;
+
+                case CardEffectType.BuffStrength:
+                    skillCmd = new BuffCommand(playerScript, cardData.value);
+                    break;
+                
+                default:
+                    Debug.LogWarning("아직 구현되지 않은 스킬 효과입니다: " + cardData.cardName);
+                    break;
+            }
+
+            // 커맨드가 생성되었다면 실행
+            if (skillCmd != null)
+            {
+                BattleManager.Instance.AddCommand(skillCmd);
+            }
+
+            // 2. 카드 뒷정리 (develop 브랜치의 소멸/무덤 로직 적용)
+            if (cardData.isExhaust) 
+                DeckManager.Instance.AddCardToExhaust(cardData);
+            else 
+                DeckManager.Instance.AddCardToDiscard(cardData);
+
+            Destroy(gameObject); // 카드 파괴
         }
-
-
-    }
 }
