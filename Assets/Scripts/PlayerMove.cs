@@ -1,5 +1,8 @@
 using UnityEngine;
 
+public enum PlayerJob // 플레이어의 직업 (TargetingSystem 추가)
+{ Warrior, Archer }
+
 public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및 상태 관리 클래스
 {
     private SpriteRenderer spriteRenderer; // 스프라이트 렌더러
@@ -16,7 +19,15 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
     public float maxHp { get; private set; } = 100; // 최대 체력
     public float currentHp { get; private set; } // 현재 체력
 
-    // [통합] 공격력 버프 설정 (Develop Branch)
+    // ---------------------------------------------------------
+    // [TargetingSystem Branch] 직업 및 타겟 정보
+    // ---------------------------------------------------------
+    public PlayerJob playerJob;
+    public Transform TargetTransform => this.transform;
+
+    // ---------------------------------------------------------
+    // [Develop Branch] 공격력 버프 설정
+    // ---------------------------------------------------------
     // [임시] 나중에 scriptable object로 관리해야 할듯 임시 공격력
     public int tempStrength = 0; 
 
@@ -59,9 +70,15 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
         tempStrength = 0; // 버프 리셋
     }
 
-    public bool TryUseEnergy(int cost) // 에너지 사용 시도 함수
+    // [중요] TryUseEnergy 함수 시그니처 수정 (TargetingSystem의 bool canConsume 반영)
+    public bool TryUseEnergy(int cost, bool canConsume = true) // 에너지 사용 시도 함수 + 공격 조건에 맞을 때만 에너지 소모 (기본값 true)
     {
-        if (currentEnergy >= cost) // 충분한 에너지 있으면
+        // 1. 소비 가능 여부 체크 (사거리가 안 닿거나 하면 false가 들어옴)
+        if (!canConsume)
+            return false;
+
+        // 2. 에너지 충분한지 체크
+        if (currentEnergy >= cost) 
         {
             currentEnergy -= cost; // 에너지 차감
             UIManager.Instance.UpdateEnergy(currentEnergy, maxEnergy); // UI 갱신
@@ -114,7 +131,7 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
     }
 
     // ---------------------------------------------------------
-    // [Develop Branch] 버프 관련 로직 (여기로 가져옴)
+    // [Develop Branch] 버프 관련 로직
     // ---------------------------------------------------------
     
     // [추가] 버프 받는 함수
