@@ -220,15 +220,39 @@ public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         }
         else if (cardData != null && cardData.cardType == CardType.Skill)
         {
-            // 버프 커맨드 실행 (아래 3단계에서 만듦)
-            ICommand buffCmd = new BuffCommand(playerScript, cardData.value);
-            BattleManager.Instance.AddCommand(buffCmd);
+            isAnyCardDragging = false; // 드래그 해제
 
-            // 스킬 카드도 쓰고 나서 버리거나 소멸해야 함
-            if (cardData.isExhaust) DeckManager.Instance.AddCardToExhaust(cardData);
-            else DeckManager.Instance.AddCardToDiscard(cardData);
+            // 1. 효과 타입(effectType)에 따라 다른 커맨드 생성!
+            // (주의: CardEffectType은 나중에 유니티 가서 추가할 예정임. 지금은 그냥 적어두기!)
+            ICommand skillCmd = null;
 
-            Destroy(gameObject);
+            switch (cardData.effectType)
+            {
+                case CardEffectType.Shield:
+                    skillCmd = new ShieldCommand(playerScript, cardData.value);
+                    break;
+
+                case CardEffectType.BuffStrength:
+                    skillCmd = new BuffCommand(playerScript, cardData.value);
+                    break;
+                
+                default:
+                    Debug.LogWarning("아직 구현되지 않은 스킬 효과입니다: " + cardData.cardName);
+                    break;
+            }
+
+            // 커맨드가 생성되었다면 실행
+            if (skillCmd != null)
+            {
+                BattleManager.Instance.AddCommand(skillCmd);
+            }
+
+            // 2. 카드 뒷정리 (develop 브랜치의 소멸/무덤 로직 적용)
+            if (cardData.isExhaust) 
+                DeckManager.Instance.AddCardToExhaust(cardData);
+            else 
+                DeckManager.Instance.AddCardToDiscard(cardData);
+
+            Destroy(gameObject); // 카드 파괴
         }
-    }
 }
