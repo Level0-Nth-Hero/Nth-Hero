@@ -63,6 +63,7 @@ public class BattleManager : MonoBehaviour
     {
         if (state != BattleState.PlayerTurn) return; // 플레이어 턴이 아니면 무시
         if (isBusy) return; // 커맨드 처리 중이면 무시
+        player.ResetTurnBuffs();
 
         StartCoroutine(EnemyTurnProcess()); // 적 턴 처리 코루틴 시작
     }

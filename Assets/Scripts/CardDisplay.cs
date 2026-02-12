@@ -3,277 +3,247 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-//using static PlayerMove;
 
-public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler // 카드 UI 표시 및 드래그/호버 처리 클래스
-{   
-    public static bool isAnyCardDragging = false; // 전체 카드 중 드래그 중인 카드가 있는지 여부
-    public CardData cardData; // 카드 데이터 참조
+public class CardDisplay : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
+{
+    public static bool isAnyCardDragging = false;
+    public CardData cardData;
 
-    public TextMeshProUGUI nameText; // 카드 이름 텍스트
-    public TextMeshProUGUI costText; // 카드 비용 텍스트
-    public TextMeshProUGUI descriptionText; // 카드 설명 텍스트
-    public Image artworkImage; // 카드 이미지
+    public TextMeshProUGUI nameText;
+    public TextMeshProUGUI costText;
+    public TextMeshProUGUI descriptionText;
+    public Image artworkImage;
 
-    private PlayerMove playerScript; // 플레이어 스크립트 참조
-    private CanvasGroup canvasGroup; // 캔버스 그룹 (드래그 시 레이캐스트 제어용)
-    private Canvas myCanvas; // 내 캔버스 참조
-    
-    private Quaternion originalRot;   // 원래 회전
-    private int originalSiblingIndex; // 원래 순서
-    private Vector3 originalScale;  // 원래 크기
-    
-    private bool isDragging = false; // 드래그 중인지 여부
-    private bool isHovering = false; // 중복 호버 방지용
-    
-    private Transform originalParent; // 원래 부모 (HandPanel)
+    private PlayerMove playerScript;
+    private CanvasGroup canvasGroup;
+    private Canvas myCanvas;
 
+    private Quaternion originalRot;
+    private int originalSiblingIndex;
+    private Vector3 originalScale;
+
+    private bool isDragging = false;
+    private bool isHovering = false;
+
+    private Transform originalParent;
 
     void Awake()
     {
-        canvasGroup = GetComponent<CanvasGroup>(); // 캔버스 그룹 가져오기
-        myCanvas = GetComponent<Canvas>(); // 내 캔버스 가져오기
-        originalScale = transform.localScale; // 원래 크기 저장
+        canvasGroup = GetComponent<CanvasGroup>();
+        myCanvas = GetComponent<Canvas>();
+        originalScale = transform.localScale;
     }
 
-    void Start() 
+    void Start()
     {
-        // 시작하자마자 내 부모(HandPanel)가 누군지 기억해야 함
-        // 안 그러면 드래그 안 하고 호버만 했다가 나갈 때 부모가 null이라 에러 남
-        originalParent = transform.parent; // 원래 부모 저장 
+        originalParent = transform.parent;
     }
 
-    public void Setup(CardData data, PlayerMove pScript) // 카드 데이터와 플레이어 스크립트로 초기화
+    public void Setup(CardData data, PlayerMove pScript)
     {
-        this.cardData = data; // 카드 데이터 설정
-        this.playerScript = pScript; // 플레이어 스크립트 설정
-        RefreshUI(); // UI 갱신
+        this.cardData = data;
+        this.playerScript = pScript;
+        RefreshUI();
     }
 
-    void RefreshUI() // 카드 UI 갱신 함수
+    void RefreshUI()
     {
-        if (cardData != null) // 카드 데이터가 있으면
+        if (cardData != null)
         {
-            nameText.text = cardData.cardName; // 이름 설정
-            costText.text = cardData.cost.ToString(); // 비용 설정
-            artworkImage.sprite = cardData.icon; // 이미지 설정
-            if(descriptionText != null) descriptionText.text = cardData.description; // 설명 설정
+            nameText.text = cardData.cardName;
+            costText.text = cardData.cost.ToString();
+            artworkImage.sprite = cardData.icon;
+            if (descriptionText != null) descriptionText.text = cardData.description;
         }
     }
 
-    public void OnPointerEnter(PointerEventData eventData) // 마우스 오버 시
+    // ... (OnPointerEnter, Exit, BeginDrag, Drag는 기존과 동일하여 생략 가능하지만, 전체 코드를 위해 유지) ...
+    public void OnPointerEnter(PointerEventData eventData)
     {
-        if (isDragging) return; // 드래그 중이면 호버 ㄴ
-        if (isAnyCardDragging) return; // 다른 카드가 드래그 중이면 호버 ㄴ
-        //if (eventData.dragging) return; 
-        
-        // 이미 떠 있으면 호버 ㄴ
-        if (isHovering) return; 
+        if (isDragging || isAnyCardDragging || isHovering) return;
 
-        isHovering = true; // 나 떴다 표시
+        isHovering = true;
+        myCanvas.overrideSorting = true;
+        myCanvas.sortingOrder = 10;
+        transform.localScale = originalScale * 1.2f;
+        transform.localPosition = new Vector3(transform.localPosition.x, transform.localPosition.y + 40f, 0);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (isDragging) return;
+        ResetCardState();
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        isDragging = true;
+        isHovering = false;
+        isAnyCardDragging = true;
+
+        Canvas mainCanvas = GetComponentInParent<Canvas>();
+        if (mainCanvas != null && mainCanvas.rootCanvas != null)
+        {
+            transform.SetParent(mainCanvas.rootCanvas.transform);
+        }
+        else
+        {
+            transform.SetParent(originalParent.parent);
+        }
 
         myCanvas.overrideSorting = true;
-        myCanvas.sortingOrder = 10; // 호버 시 최상위로
-
-        //originalSiblingIndex = transform.GetSiblingIndex(); 
-        //transform.SetAsLastSibling(); 
-
-        transform.localScale = originalScale * 1.2f; // 크기 1.2배 확대
-        
-        
-        transform.localPosition = new Vector3(transform.localPosition.x, transform.localPosition.y + 40f, 0); // Y 위치 살짝 올리기
+        myCanvas.sortingOrder = 100;
+        transform.localScale = originalScale;
+        originalRot = transform.rotation;
+        transform.rotation = Quaternion.identity;
+        canvasGroup.blocksRaycasts = false;
     }
 
-    public void OnPointerExit(PointerEventData eventData) // 마우스 나갈 시
+    public void OnDrag(PointerEventData eventData)
     {
-        if (isDragging) return; // 드래그 중이면 무시
-        
-        ResetCardState(); // 카드 상태 초기화
+        transform.position = eventData.position;
     }
 
-    public void OnBeginDrag(PointerEventData eventData) // 드래그 시작 시
-    {
-        isDragging = true; // 드래그 상태 표시
-        isHovering = false; // 드래그 시작하면 호버 상태는 해제한다고 침
-
-        isAnyCardDragging = true; // 전체 카드 중 드래그 중인 카드가 있다고 표시
-
-        // 부모를 캔버스로 옮김
-        Canvas mainCanvas = GetComponentInParent<Canvas>(); // 최상위 캔버스 찾기
-        if(mainCanvas != null && mainCanvas.rootCanvas != null) // 루트 캔버스가 있으면
-        {
-             // rootCanvas는 최상위 캔버스를 의미함
-            transform.SetParent(mainCanvas.rootCanvas.transform); // 최상위 캔버스로 부모 변경
-        }
-        else // 안전장치
-        {
-             transform.SetParent(originalParent.parent); // 원래 부모의 부모로 변경
-        }
-
-        // 드래그 중엔 확실하게 맨 위에 보여야 하므로 SortingOrder 최대로
-        myCanvas.overrideSorting = true; // 강제 오버라이드
-        myCanvas.sortingOrder = 100; // 최상위로
-        
-        //transform.SetAsLastSibling();
-
-        // 3. 크기랑 회전 초기화
-        transform.localScale = originalScale; // 원래 크기
-        originalRot = transform.rotation; // 원래 회전 저장
-        transform.rotation = Quaternion.identity; // 똑바로 세우기
-
-        // 4. 레이캐스트 끄기 (적 인식용)
-        canvasGroup.blocksRaycasts = false; // 드래그 중엔 레이캐스트 무시
-    }
-
-    public void OnDrag(PointerEventData eventData) // 드래그 중일 때
-    {
-        transform.position = eventData.position; // 마우스 위치로 이동
-    }
-
-    public void OnEndDrag(PointerEventData eventData) // 드래그 끝났을 때
+    public void OnEndDrag(PointerEventData eventData)
     {
         isDragging = false;
-        canvasGroup.blocksRaycasts = true; // 레이캐스트 다시 켜기
+        canvasGroup.blocksRaycasts = true;
+        isAnyCardDragging = false;
 
-        isAnyCardDragging = false; // 전체 카드 중 드래그 중인 카드 없다고 표시
+        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero);
 
-        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition); // 마우스 위치 월드 좌표로 변환
-        RaycastHit2D hit = Physics2D.Raycast(mousePos, Vector2.zero); // 마우스 위치에 레이캐스트 발사
-
-        if (hit.collider != null) // 뭔가 맞았으면
+        // 1. 적(Target) 위에 드래그했을 때 (공격 카드)
+        if (hit.collider != null)
         {
-            IDamageable target = hit.collider.GetComponent<IDamageable>(); // 맞은 대상이 IDamageable인지 확인
-            if (target != null) // 맞은 대상이 IDamageable이면
+            IDamageable target = hit.collider.GetComponent<IDamageable>();
+            if (target != null)
             {
+                // 공격 카드 사용 시도
                 bool used = UseCard(target);
 
-                if (!used) // 에너지 부족하면
+                if (!used) 
                 {
-                    ResetCardState(); // 카드 상태 초기화
+                    ResetCardState(); // 실패하면 되돌아감
                 }
-                return; // 성공했으면 종료
+                return; // 성공했으면 UseCard 안에서 Destroy 되므로 여기서 끝
             }
         }
-        
-        ResetCardState(); // 카드 상태 초기화
+        // 2. 스킬/버프 카드: 그냥 허공(위쪽)에 던졌을 때
+        else if (cardData.cardType == CardType.Skill)
+        {
+            if (Input.mousePosition.y > Screen.height * 0.25f)
+            {
+                if (playerScript.TryUseEnergy(cardData.cost))
+                {
+                    UseCard(null); // 타겟 없이 사용
+                    return;
+                }
+            }
+        }
+
+        ResetCardState(); // 아무 조건도 안 맞으면 원래 자리로
     }
 
     void ResetCardState()
     {
-        isHovering = false; // 호버 상태 끄기
-
+        isHovering = false;
         myCanvas.overrideSorting = false;
         myCanvas.sortingOrder = 0;
-        // 1. 원래 부모(HandPanel)로 복귀
-        // (Start에서 찾아놨으니 안전함)
         transform.SetParent(originalParent);
-
-        // 2. 크기 복구
         transform.localScale = originalScale;
-
-        // 3. [핵심] 위치는 DeckManager가 잡아줌
-        // 이렇게 하면 아까 +40 했던 것도 무시하고 정확한 곡선 위치로 강제 이동됨
         DeckManager.Instance.AlignCards();
     }
 
-
+    // [핵심 수정] 공격과 스킬 로직을 하나로 합친 메서드
     public bool UseCard(IDamageable target)
     {
-        if (cardData == null || cardData.cardType != CardType.Attack)
-            return false;
+        if (cardData == null) return false;
 
-        isAnyCardDragging = false;
-
-        Animator anim = playerScript.GetComponent<Animator>();
-
-        // 직업별 공격 조건 리스트 생성
-        List<IAttackCondition> conditions = new List<IAttackCondition>();
-        switch (playerScript.playerJob)
+        // ====================================================
+        // CASE 1: 공격 카드 (TargetingSystem 브랜치 내용)
+        // ====================================================
+        if (cardData.cardType == CardType.Attack)
         {
-            case PlayerJob.Warrior:
-                WarriorAttack warriorCondition = new WarriorAttack();
-                conditions.Add(warriorCondition);
-                break;
+            if (target == null) return false;
 
-            case PlayerJob.Archer:
-                ArcherAttack archerCondition = new ArcherAttack();
-                conditions.Add(archerCondition);
-                break;
-        }
+            isAnyCardDragging = false;
+            Animator anim = playerScript.GetComponent<Animator>();
 
-        // 사전 조건 체크 (범위 밖이면 카드 Destroy 안 함)
-        for (int i = 0; i < conditions.Count; i++)
-        {
-            if (!conditions[i].CanAttack(target.TargetTransform))
+            // 1. 직업별 공격 사거/조건 체크
+            List<IAttackCondition> conditions = new List<IAttackCondition>();
+            switch (playerScript.playerJob)
             {
-                Debug.Log("범위 밖이라 카드 사용 불가");
-                return false;
+                case PlayerJob.Warrior:
+                    conditions.Add(new WarriorAttack());
+                    break;
+                case PlayerJob.Archer:
+                    conditions.Add(new ArcherAttack());
+                    break;
             }
+
+            for (int i = 0; i < conditions.Count; i++)
+            {
+                if (!conditions[i].CanAttack(target.TargetTransform))
+                {
+                    Debug.Log("범위 밖이라 카드 사용 불가");
+                    return false;
+                }
+            }
+
+            // 2. 에너지 사용 (공격 카드는 여기서 체크)
+            if (!playerScript.TryUseEnergy(cardData.cost, true))
+                return false;
+
+            // 3. 커맨드 생성 및 실행
+            AttackCommand attackCmd = new AttackCommand(target, target.TargetTransform, cardData.value, anim, conditions);
+            BattleManager.Instance.AddCommand(attackCmd);
+            
+            DeckManager.Instance.AddCardToDiscard(cardData);
+            Destroy(gameObject);
+            return true;
         }
-        if (!playerScript.TryUseEnergy(cardData.cost, true))
-            return false;
 
-        // AttackCommand 생성
-        AttackCommand attackCmd = new AttackCommand(target, target.TargetTransform, cardData.value, anim, conditions);
+        // ====================================================
+        // CASE 2: 스킬 카드 (Develop 브랜치 내용)
+        // ====================================================
+        else if (cardData.cardType == CardType.Skill)
+        {
+            isAnyCardDragging = false;
 
-        BattleManager.Instance.AddCommand(attackCmd);
-        DeckManager.Instance.AddCardToDiscard(cardData);
-        Destroy(gameObject);
+            // 1. 효과 타입에 따른 커맨드 생성
+            ICommand skillCmd = null;
 
-        return true;
+            switch (cardData.effectType)
+            {
+                case CardEffectType.Shield:
+                    skillCmd = new ShieldCommand(playerScript, cardData.value);
+                    break;
+
+                case CardEffectType.BuffStrength:
+                    skillCmd = new BuffCommand(playerScript, cardData.value);
+                    break;
+
+                default:
+                    Debug.LogWarning("아직 구현되지 않은 스킬 효과: " + cardData.cardName);
+                    break;
+            }
+
+            if (skillCmd != null)
+            {
+                BattleManager.Instance.AddCommand(skillCmd);
+            }
+
+            // 2. 소멸/무덤 처리
+            if (cardData.isExhaust)
+                DeckManager.Instance.AddCardToExhaust(cardData);
+            else
+                DeckManager.Instance.AddCardToDiscard(cardData);
+
+            Destroy(gameObject);
+            return true;
+        }
+
+        return false;
     }
 }
-
-
-    /*
-    public void UseCard(IDamageable target) // 카드를 사용해서 대상에게 효과 적용
-    {
-        if (cardData == null || cardData.cardType != CardType.Attack)
-            return;
-
-        // 타겟 위치 확인용 캐스팅
-        MonoBehaviour targetMono = target as MonoBehaviour;
-        if (targetMono == null)
-        {
-            Debug.Log("공격 불가능: 타겟 위치 정보를 가져올 수 없음");
-            return;
-        }
-
-        // 사전 범위 체크 (AttackCommand와 동일 기준)
-        if (targetMono.transform.position.x >= 5f)
-        {
-            Debug.Log("공격 불가능 : 적 위치가 범위 밖입니다!");
-            return; // Destroy 안 함
-        }
-
-        isAnyCardDragging = false;
-
-        Animator anim = playerScript.GetComponent<Animator>();
-
-        ICommand attackCmd = new AttackCommand(target, targetMono.transform, cardData.value, anim);
-
-        BattleManager.Instance.AddCommand(attackCmd);
-        DeckManager.Instance.AddCardToDiscard(cardData);
-
-        Destroy(gameObject);
-    }
-
-    /*
-    // 혹시나 오류에 대비해서 기존 코드 주석 처리 (김성민)
-
-
-    public void UseCard(IDamageable target) // 카드를 사용해서 대상에게 효과 적용
-    {
-        if (cardData != null && cardData.cardType == CardType.Attack) // 공격 카드면
-        {
-            isAnyCardDragging = false; // 드래그 상태 해제
-
-            Animator anim = playerScript.GetComponent<Animator>(); // 플레이어 애니메이터 가져오기
-            ICommand attackCmd = new AttackCommand(target, cardData.value, anim); // 공격 커맨드 생성
-            BattleManager.Instance.AddCommand(attackCmd); // 커맨드 매니저에 등록
-            DeckManager.Instance.AddCardToDiscard(cardData); // 카드 무덤에 보내기
-
-            Destroy(gameObject); // 카드 오브젝트 파괴
-        }
-    }
-    */
