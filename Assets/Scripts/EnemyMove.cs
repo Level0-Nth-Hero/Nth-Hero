@@ -55,5 +55,10 @@ public class EnemyMove : MonoBehaviour, IDamageable
         anim.SetTrigger("Damaged");
         if (currentHp < 0) currentHp = 0;
         UIManager.Instance.UpdateHP(currentHp, maxHp, false); // false는 적
+
+        if (currentHp <= 0)
+        {
+            UI_Reward.Instance.Show(); // UI_Reward 호출
+        }
     }
 }

@@ -53,6 +53,10 @@ public class PlayerMove : MonoBehaviour , IDamageable // 플레이어 이동 및
         anim.SetTrigger("Damaged");
         if (currentHp < 0) currentHp = 0;
         UIManager.Instance.UpdateHP(currentHp, maxHp, true);
+        if (currentHp <= 0)
+        {
+            UI_Defeat.Instance.Show(); // UI_Defeat 호출
+        }
     }
 
 }
